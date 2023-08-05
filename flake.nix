@@ -2,11 +2,13 @@
   description = "nix-router";
 
   inputs = {
-    std.url = "github:divnix/std";
+    hive.follows = "nix-rebar/hive";
+    nix-rebar.url = "github:VertexA115/nix-rebar";
+    std.follows = "nix-rebar/std";
   };
 
-  outputs = { self, std, nixpkgs, std, ... }@inputs:
-    std.growOn {
+  outputs = { self, std, nixpkgs, hive, ... }@inputs:
+    hive.growOn {
       inherit inputs;
 
       nixpkgsConfig = { allowUnfree = true; };
@@ -17,19 +19,29 @@
       ];
 
       cellsFrom = ./cells;
-      cellBlocks = with std.blockTypes; [
-        (functions "nixosModules")
-        (functions "nixosProfiles")
+      cellBlocks = with std.blockTypes;
+        with hive.blockTypes; [
+          # Library functions
+          (data "data")
+          (devshells "devshells")
+          (installables "packages")
+          (nixago "config")
+          (pkgs "overrides")
+          (files "files")
+          (functions "functions")
+          (functions "overlays")
 
-        (data "data")
-        (devshells "devshells")
-        (installables "packages")
-        (pkgs "overrides")
-        (files "files")
-        (functions "overlays")
-      ];
+          # Modules
+          (functions "nixosModules")
+
+          # Profiles
+          (functions "nixosProfiles")
+
+          # Configurations
+          nixosConfigurations
+        ];
     }
     {
       nixosModules = hive.pick inputs.self [ "nixos" "nixosModules" ];
-    }
+    };
 }
